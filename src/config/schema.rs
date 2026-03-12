@@ -242,6 +242,15 @@ pub struct ModelProviderConfig {
     /// If true, load OpenAI auth material (OPENAI_API_KEY or ~/.codex/auth.json).
     #[serde(default)]
     pub requires_openai_auth: bool,
+    /// Azure OpenAI resource name (e.g. "my-resource" in https://my-resource.openai.azure.com).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub azure_openai_resource: Option<String>,
+    /// Azure OpenAI deployment name (e.g. "gpt-4o").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub azure_openai_deployment: Option<String>,
+    /// Azure OpenAI API version (defaults to "2024-08-01-preview").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub azure_openai_api_version: Option<String>,
 }
 
 // ── Delegate Agents ──────────────────────────────────────────────
@@ -7074,6 +7083,9 @@ requires_openai_auth = true
                     base_url: Some("https://api.tonsof.blue/v1".to_string()),
                     wire_api: None,
                     requires_openai_auth: false,
+                    azure_openai_resource: None,
+                    azure_openai_deployment: None,
+                    azure_openai_api_version: None,
                 },
             )]),
             ..Config::default()
@@ -7102,6 +7114,9 @@ requires_openai_auth = true
                     base_url: Some("https://api.tonsof.blue".to_string()),
                     wire_api: Some("responses".to_string()),
                     requires_openai_auth: true,
+                    azure_openai_resource: None,
+                    azure_openai_deployment: None,
+                    azure_openai_api_version: None,
                 },
             )]),
             api_key: None,
@@ -7164,6 +7179,9 @@ requires_openai_auth = true
                     base_url: Some("https://api.tonsof.blue/v1".to_string()),
                     wire_api: Some("ws".to_string()),
                     requires_openai_auth: false,
+                    azure_openai_resource: None,
+                    azure_openai_deployment: None,
+                    azure_openai_api_version: None,
                 },
             )]),
             ..Config::default()
@@ -8256,8 +8274,7 @@ require_otp_to_resume = true
         // Simulate a full load: deserialize then decrypt (mirrors load_or_init logic)
         let mut loaded: Config = toml::from_str(&raw_toml).unwrap();
         loaded.config_path = dir.join("config.toml");
-        let load_store =
-            crate::security::SecretStore::new(&dir, loaded.secrets.encrypt);
+        let load_store = crate::security::SecretStore::new(&dir, loaded.secrets.encrypt);
         if let Some(ref mut tg) = loaded.channels_config.telegram {
             decrypt_secret(
                 &load_store,
